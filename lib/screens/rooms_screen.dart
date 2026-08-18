@@ -7,7 +7,7 @@ import '../widgets/notification_banner.dart';
 import '../widgets/room_status_card.dart';
 
 class RoomsScreen extends StatefulWidget {
-  const RoomsScreen({Key? key}) : super(key: key);
+  const RoomsScreen({super.key});
 
   @override
   State<RoomsScreen> createState() => _RoomsScreenState();
@@ -20,10 +20,10 @@ class _RoomsScreenState extends State<RoomsScreen> {
   final List<int> _availableFloors = [1, 2, 3, 4, 5];
 
   final NotificationModel _demoNotification = NotificationModel(
-    titulo: 'Limpieza Solicitada',
-    descripcion: 'Se necesita limpieza urgente',
-    habitacion: '201',
-    tiempo: 'Ahora',
+    title: 'Limpieza Solicitada',
+    description: 'Se necesita limpieza urgente',
+    relatedRoom: '201',
+    time: 'Ahora',
   );
 
   @override

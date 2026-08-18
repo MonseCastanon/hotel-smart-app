@@ -6,11 +6,7 @@ class RoomStatusCard extends StatefulWidget {
   final RoomModel room;
   final VoidCallback? onTap;
 
-  const RoomStatusCard({
-    Key? key,
-    required this.room,
-    this.onTap,
-  }) : super(key: key);
+  const RoomStatusCard({super.key, required this.room, this.onTap});
 
   @override
   State<RoomStatusCard> createState() => _RoomStatusCardState();
@@ -38,7 +34,13 @@ class _RoomStatusCardState extends State<RoomStatusCard> {
             width: _isFocused ? 4 : 1,
           ),
           boxShadow: _isFocused
-              ? [BoxShadow(color: Colors.blueAccent.withOpacity(0.3), blurRadius: 8, spreadRadius: 2)]
+              ? [
+                  BoxShadow(
+                    color: Colors.blueAccent.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                  ),
+                ]
               : [const BoxShadow(color: Colors.black12, blurRadius: 4)],
         ),
         padding: const EdgeInsets.all(16),
@@ -54,7 +56,7 @@ class _RoomStatusCardState extends State<RoomStatusCard> {
               ),
             ),
             const SizedBox(height: 12),
-            StatusBadge(estado: widget.room.estado),
+            StatusBadge(status: widget.room.estado.name),
           ],
         ),
       ),
