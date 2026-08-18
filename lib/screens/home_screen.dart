@@ -3,8 +3,8 @@ import '../data/notifications_datasource.dart';
 import '../data/tasks_datasource.dart';
 import '../widgets/notification_banner.dart';
 import '../widgets/room_type_card.dart';
-import '../widgets/service_action_button.dart';
 import '../widgets/activity_table.dart';
+import '../config/theme/app_theme.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -15,7 +15,6 @@ class HomeScreen extends StatelessWidget {
     final tasks = TasksDatasource().getRecentActivity();
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       body: SafeArea(
         child: FocusTraversalGroup(
           child: Column(
@@ -25,99 +24,72 @@ class HomeScreen extends StatelessWidget {
                 NotificationBanner(notification: notifications.first),
               
               Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
                   children: [
-                    // Izquierda: Habitaciones y Servicios
+                    // Top 50%: Actividad Reciente
                     Expanded(
                       flex: 1,
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 2. Habitaciones Disponibles
-                            const Text(
-                              'Habitaciones Disponibles',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            Text(
+                              'Actividad Reciente',
+                              style: Theme.of(context).textTheme.headlineMedium,
                             ),
                             const SizedBox(height: 16),
-                            Expanded(
-                              flex: 1,
-                              child: GridView.count(
-                                crossAxisCount: 2,
-                                childAspectRatio: 1.5,
-                                mainAxisSpacing: 16.0,
-                                crossAxisSpacing: 16.0,
-                                children: const [
-                                  RoomTypeCard(roomType: 'Estándar', availableCount: 12),
-                                  RoomTypeCard(roomType: 'Doble', availableCount: 5),
-                                  RoomTypeCard(roomType: 'Deluxe', availableCount: 2),
-                                  RoomTypeCard(roomType: 'Suite', availableCount: 0),
-                                ],
-                              ),
-                            ),
-                            
-                            // 3. Servicios
-                            const SizedBox(height: 24),
-                            const Text(
-                              'Servicios',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 16),
-                            Expanded(
-                              flex: 1,
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: ServiceActionButton(
-                                      icon: Icons.login,
-                                      title: 'Check-In',
-                                      subtitle: 'Registrar llegada',
-                                      isHighlighted: true,
-                                      onTap: () {},
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: ServiceActionButton(
-                                      icon: Icons.logout,
-                                      title: 'Check-Out',
-                                      subtitle: 'Registrar salida',
-                                      onTap: () {},
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: ServiceActionButton(
-                                      icon: Icons.receipt_long,
-                                      title: 'Pagos',
-                                      subtitle: 'Facturas',
-                                      onTap: () {},
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            Expanded(child: ActivityTable(tasks: tasks)),
                           ],
                         ),
                       ),
                     ),
                     
-                    // Derecha: Actividad Reciente
+                    // Bottom 50%: Información de Habitaciones
                     Expanded(
                       flex: 1,
                       child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Actividad Reciente',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            Text(
+                              'Estado de Habitaciones',
+                              style: Theme.of(context).textTheme.headlineMedium,
                             ),
                             const SizedBox(height: 16),
-                            Expanded(child: ActivityTable(tasks: tasks)),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: RoomTypeCard(
+                                      title: 'Ocupadas',
+                                      count: 15,
+                                      icon: Icons.hotel,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: RoomTypeCard(
+                                      title: 'Por Entregar',
+                                      count: 4,
+                                      icon: Icons.cleaning_services,
+                                      color: AppColors.secondary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: RoomTypeCard(
+                                      title: 'Por Llegar',
+                                      count: 7,
+                                      icon: Icons.luggage,
+                                      color: AppColors.success,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
