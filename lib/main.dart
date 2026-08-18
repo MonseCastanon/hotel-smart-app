@@ -1,4 +1,4 @@
-// import 'package:firebase_core/firebase_core.dart'; // descomentar tras flutterfire configure
+import 'package:firebase_core/firebase_core.dart'; // descomentar tras flutterfire configure
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +6,7 @@ import 'package:hotel_smart_app/config/router/router.dart';
 import 'package:hotel_smart_app/config/theme/app_theme.dart';
 
 // TODO: Ejecutar `flutterfire configure` para generar este archivo.
-// import 'firebase_options.dart';
+import 'firebase_options.dart';
 
 void main() async {
   // 1. Inicializar los bindings de Flutter antes de cualquier operación async.
@@ -28,16 +28,10 @@ void main() async {
   //    ⚠️  PENDIENTE: ejecuta `flutterfire configure` para generar
   //    firebase_options.dart y google-services.json, luego descomenta:
   //
-  // await Firebase.initializeApp(
-  //   options: DefaultFirebaseOptions.currentPlatform,
-  // );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // 5. Levantar la app envuelta en ProviderScope para Riverpod.
-  runApp(
-    const ProviderScope(
-      child: HotelSmartApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: HotelSmartApp()));
 }
 
 /// Widget raíz de la Smart TV.
