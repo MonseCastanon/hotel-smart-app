@@ -1,13 +1,13 @@
 class NotificationModel {
-  final String titulo;
-  final String descripcion;
-  final String habitacion;
-  final String tiempo;
+  final String title;
+  final String description;
+  final String relatedRoom;
+  final String time;
 
-  NotificationModel({
-    required this.titulo,
-    required this.descripcion,
-    required this.habitacion,
-    required this.tiempo,
+  const NotificationModel({
+    required this.title,
+    required this.description,
+    required this.relatedRoom,
+    required this.time,
   });
 }

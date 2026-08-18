@@ -1,34 +1,39 @@
 import 'package:flutter/material.dart';
-import '../models/room_model.dart';
 
 class StatusBadge extends StatelessWidget {
-  final RoomStatus estado;
+  final String status;
 
-  const StatusBadge({Key? key, required this.estado}) : super(key: key);
+  const StatusBadge({super.key, required this.status});
+
+  Color _getColor() {
+    switch (status.toLowerCase()) {
+      case 'limpia':
+      case 'completado':
+        return Colors.green;
+      case 'sucia':
+        return Colors.red;
+      case 'en limpieza':
+      case 'en proceso':
+        return Colors.blue;
+      case 'ocupada':
+      case 'pendiente':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Instancia ficticia para acceder al mapeo de colores definido en el modelo
-    final dummyRoom = RoomModel(
-      numero: '',
-      piso: 0,
-      tipo: RoomType.estandar,
-      estado: estado,
-    );
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       decoration: BoxDecoration(
-        color: dummyRoom.statusColor,
-        borderRadius: BorderRadius.circular(20),
+        color: _getColor(),
+        borderRadius: BorderRadius.circular(8.0),
       ),
       child: Text(
-        dummyRoom.statusText,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
+        status,
+        style: const TextStyle(color: Colors.white, fontSize: 12.0),
       ),
     );
   }

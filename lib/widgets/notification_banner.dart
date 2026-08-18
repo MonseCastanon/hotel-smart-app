@@ -4,57 +4,43 @@ import '../models/notification_model.dart';
 class NotificationBanner extends StatelessWidget {
   final NotificationModel notification;
 
-  const NotificationBanner({
-    Key? key,
-    required this.notification,
-  }) : super(key: key);
+  const NotificationBanner({super.key, required this.notification});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.shade200),
+        color: Colors.orange.shade100,
+        borderRadius: BorderRadius.circular(12.0),
       ),
       child: Row(
         children: [
-          const Icon(Icons.notifications_active, color: Colors.orange, size: 32),
-          const SizedBox(width: 16),
+          const Icon(Icons.notifications, color: Colors.orange),
+          const SizedBox(width: 16.0),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  notification.titulo,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                  notification.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Habitación ${notification.habitacion} - ${notification.descripcion}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black54,
-                  ),
-                ),
+                Text(notification.description),
               ],
             ),
           ),
-          const SizedBox(width: 16),
-          Text(
-            notification.tiempo,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.orange,
-            ),
-          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                notification.relatedRoom,
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(notification.time),
+            ],
+          )
         ],
       ),
     );
