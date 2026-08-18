@@ -6,29 +6,46 @@ import '../widgets/room_type_card.dart';
 import '../widgets/activity_table.dart';
 import '../config/theme/app_theme.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Simula la llegada de la notificación push flotante 1 segundo después de cargar la pantalla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          final notifications = NotificationsDatasource().getActiveNotifications();
+          if (notifications.isNotEmpty) {
+            NotificationBanner.show(context, notifications.first);
+          }
+        }
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final notifications = NotificationsDatasource().getActiveNotifications();
-    final tasks = TasksDatasource().getRecentActivity();
+    // Muestra únicamente las primeras 3 actividades recientes
+    final tasks = TasksDatasource().getRecentActivity().take(3).toList();
 
     return Scaffold(
       body: SafeArea(
         child: FocusTraversalGroup(
           child: Column(
             children: [
-              // 1. Notificaciones
-              if (notifications.isNotEmpty)
-                NotificationBanner(notification: notifications.first),
-              
               Expanded(
                 child: Column(
                   children: [
-                    // Top 50%: Actividad Reciente
+                    // Top 60%: Actividad Reciente (colocada hasta arriba en el layout)
                     Expanded(
-                      flex: 1,
+                      flex: 3,
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
                         child: Column(
@@ -45,9 +62,9 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     
-                    // Bottom 50%: Información de Habitaciones
+                    // Bottom 40%: Información de Habitaciones
                     Expanded(
-                      flex: 1,
+                      flex: 2,
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                         child: Column(
