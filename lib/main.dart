@@ -1,6 +1,5 @@
 // import 'package:firebase_core/firebase_core.dart'; // descomentar tras flutterfire configure
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotel_smart_app/config/router/router.dart';
