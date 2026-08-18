@@ -24,7 +24,7 @@ class _RoomTypeCardState extends State<RoomTypeCard> {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {}, // Necesario para que sea interactivo con Enter
+      onTap: () {}, // Necesario para que sea interactivo con control remoto / teclado
       onFocusChange: (focused) {
         setState(() {
           _isFocused = focused;
@@ -34,43 +34,54 @@ class _RoomTypeCardState extends State<RoomTypeCard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+          color: widget.color, // Toda la card tiene su color correspondiente
           borderRadius: BorderRadius.circular(16.0),
           border: Border.all(
-            color: _isFocused ? widget.color : Colors.transparent,
+            color: _isFocused ? Colors.white : Colors.transparent,
             width: _isFocused ? 3 : 1,
           ),
           boxShadow: _isFocused
               ? [
                   BoxShadow(
-                    color: widget.color.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    spreadRadius: 2,
+                    color: widget.color.withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    spreadRadius: 3,
                   ),
                 ]
-              : [const BoxShadow(color: Colors.black12, blurRadius: 4)],
+              : [const BoxShadow(color: Colors.black26, blurRadius: 6)],
         ),
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(widget.icon, size: 48.0, color: widget.color),
-            const SizedBox(height: 8.0),
-            Text(
-              widget.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18.0),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              '${widget.count}',
-              style: TextStyle(
-                fontSize: 32.0,
-                fontWeight: FontWeight.bold,
-                color: widget.color,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                widget.icon,
+                size: 44.0,
+                color: Colors.white,
               ),
-            ),
-          ],
+              const SizedBox(height: 12.0),
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 30.0, // Título centrado y más grande
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12.0),
+              Text(
+                '${widget.count}',
+                style: const TextStyle(
+                  fontSize: 52.0, // Número grande y blanco
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

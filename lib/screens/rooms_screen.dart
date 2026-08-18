@@ -30,6 +30,14 @@ class _RoomsScreenState extends State<RoomsScreen> {
   void initState() {
     super.initState();
     _loadRooms();
+    // Simula la llegada de la notificación push flotante 1 segundo después de cargar la pantalla
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          NotificationBanner.show(context, _demoNotification);
+        }
+      });
+    });
   }
 
   Future<void> _loadRooms() async {
@@ -82,8 +90,6 @@ class _RoomsScreenState extends State<RoomsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            NotificationBanner(notification: _demoNotification),
             const SizedBox(height: 24),
             const Text(
               'Habitaciones',
