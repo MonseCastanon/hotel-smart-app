@@ -51,7 +51,7 @@ class HotelSmartApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
 
       // Tema único oscuro diseñado para pantallas grandes a distancia.
-      theme: const AppTheme().getTheme(),
+      theme: const AppTheme(isDarkMode: true).getTheme(),
 
       // Router declarativo con go_router (mismo paquete que hotel_app).
       routerConfig: appRouter,

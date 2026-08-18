@@ -1,200 +1,179 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Paleta de colores
-// ─────────────────────────────────────────────────────────────────────────────
+/// Paleta de colores del proyecto Hotel App
+class AppColors {
+  AppColors._();
 
-/// Colores globales de la Smart TV.
-///
-/// Los colores de estado coinciden con los mockups y el mapa usado en
-/// [RoomModel] y [StatusBadge]:
-///   • [occupied]  → naranja  (Ocupada / alerta)
-///   • [clean]     → verde    (Limpia)
-///   • [dirty]     → rojo     (Sucia)
-///   • [cleaning]  → azul     (En Limpieza)
-///
-/// El color [primary] (naranja de marca) se reutiliza del proyecto
-/// [hotel_app] para mantener consistencia visual entre ambas apps.
-abstract final class AppColors {
-  // ── Marca ─────────────────────────────────────────────────────────────────
-  /// Naranja principal — botón Check-In, ícono de notificaciones, acento.
+  /// Naranja principal — color de marca
   static const Color primary = Color(0xFFFF661A);
 
-  /// Variante más oscura del naranja para hover / pressed.
-  static const Color primaryDark = Color(0xFFCC4A00);
+  /// Gris claro — fondo principal en modo claro
+  static const Color backgroundLight = Color(0xFFF0F0F0);
 
-  // ── Fondos ────────────────────────────────────────────────────────────────
-  /// Fondo general de la app (pantalla oscura, TV).
-  static const Color background = Color(0xFF0F1117);
+  /// Gris oscuro — fondo en modo oscuro / texto principal
+  static const Color backgroundDark = Color(0xFF303030);
 
-  /// Superficie de tarjetas y paneles.
-  static const Color surface = Color(0xFF1C1F2A);
+  /// Durazno/salmón claro — color secundario / acentos
+  static const Color secondary = Color(0xFFEFB49F);
 
-  /// Superficie elevada (modales, dropdowns).
-  static const Color surfaceElevated = Color(0xFF252836);
+  /// Blanco humo — superficies / tarjetas en modo claro
+  static const Color surface = Color(0xFFF2F2F2);
 
-  // ── Texto ─────────────────────────────────────────────────────────────────
-  static const Color textPrimary = Color(0xFFF2F3F7);
-  static const Color textSecondary = Color(0xFF9EA3B2);
-  static const Color textDisabled = Color(0xFF555A6B);
-
-  // ── Bordes ────────────────────────────────────────────────────────────────
-  static const Color border = Color(0xFF2E3245);
-  static const Color borderFocus = Color(0xFFFF661A); // naranja al enfocar
-
-  // ── Estados de habitación ─────────────────────────────────────────────────
-  /// Habitación Ocupada
-  static const Color occupied = Color(0xFFFF8C00);
-
-  /// Habitación Limpia
-  static const Color clean = Color(0xFF2ECC71);
-
-  /// Habitación Sucia
-  static const Color dirty = Color(0xFFE74C3C);
-
-  /// Habitación En Limpieza
-  static const Color cleaning = Color(0xFF3498DB);
-
-  // ── Semánticos generales ──────────────────────────────────────────────────
-  static const Color success = Color(0xFF2ECC71);
-  static const Color warning = Color(0xFFFF8C00);
-  static const Color error = Color(0xFFE74C3C);
-  static const Color info = Color(0xFF3498DB);
+  /// Verde — color de éxito
+  static const Color success = Color(0xFF4CAF50);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tema principal
-// ─────────────────────────────────────────────────────────────────────────────
-
-/// Clase que construye el [ThemeData] para la Smart TV.
-///
-/// Pensado para verse bien en pantallas grandes a distancia:
-///   • Contraste alto (texto claro sobre fondo muy oscuro).
-///   • Tipografía grande y legible (Poppins, tamaños aumentados).
-///   • Modo único: siempre oscuro (TV nunca cambia de tema).
+/// Clase que gestiona el tema de la aplicación.
+/// Soporta modo claro y oscuro con la misma paleta de colores.
 class AppTheme {
-  const AppTheme();
+  final bool isDarkMode;
 
-  ThemeData getTheme() => _theme;
+  const AppTheme({this.isDarkMode = false});
 
-  static final ThemeData _theme = ThemeData(
+  /// TextTheme base con Poppins para modo claro (texto oscuro sobre fondo claro).
+  static final TextTheme _poppinsLight = GoogleFonts.poppinsTextTheme(
+    ThemeData(brightness: Brightness.light).textTheme,
+  );
+
+  /// TextTheme base con Poppins para modo oscuro (texto claro sobre fondo oscuro).
+  static final TextTheme _poppinsDark = GoogleFonts.poppinsTextTheme(
+    ThemeData(brightness: Brightness.dark).textTheme,
+  );
+
+  ThemeData getTheme() => isDarkMode ? _darkTheme : _lightTheme;
+
+  // ─────────────────────────────── Tema Claro ──────────────────────────────
+  static final ThemeData _lightTheme = ThemeData(
     useMaterial3: true,
-    brightness: Brightness.dark,
-    scaffoldBackgroundColor: AppColors.background,
-    cardColor: AppColors.surface,
-    dividerColor: AppColors.border,
-
-    // ── Tipografía ──────────────────────────────────────────────────────────
-    // Poppins igual que hotel_app; tamaños más grandes para TV.
-    textTheme: GoogleFonts.poppinsTextTheme(
-      ThemeData(brightness: Brightness.dark).textTheme,
-    ).copyWith(
-      // Títulos de sección (ej. "Habitaciones Disponibles")
-      headlineMedium: GoogleFonts.poppins(
-        fontSize: 26,
-        fontWeight: FontWeight.w700,
-        color: AppColors.textPrimary,
-        letterSpacing: 0.3,
-      ),
-      // Subtítulos y labels de tarjeta
-      titleLarge: GoogleFonts.poppins(
-        fontSize: 20,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
-      ),
-      titleMedium: GoogleFonts.poppins(
-        fontSize: 17,
-        fontWeight: FontWeight.w500,
-        color: AppColors.textPrimary,
-      ),
-      // Cuerpo de texto principal
-      bodyLarge: GoogleFonts.poppins(
-        fontSize: 16,
-        fontWeight: FontWeight.w400,
-        color: AppColors.textPrimary,
-      ),
-      bodyMedium: GoogleFonts.poppins(
-        fontSize: 14,
-        fontWeight: FontWeight.w400,
-        color: AppColors.textSecondary,
-      ),
-      // Labels pequeños (ej. tiempo en notificaciones)
-      labelSmall: GoogleFonts.poppins(
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-        color: AppColors.textDisabled,
-        letterSpacing: 0.5,
-      ),
-    ),
-
-    // ── ColorScheme ─────────────────────────────────────────────────────────
+    brightness: Brightness.light,
+    textTheme: _poppinsLight,
     colorScheme: const ColorScheme(
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
+      // Primario
       primary: AppColors.primary,
       onPrimary: Colors.white,
-      primaryContainer: AppColors.primaryDark,
-      onPrimaryContainer: Colors.white,
-      secondary: AppColors.occupied,
-      onSecondary: Colors.white,
-      secondaryContainer: Color(0xFF3A2000),
-      onSecondaryContainer: AppColors.occupied,
+      primaryContainer: AppColors.secondary,
+      onPrimaryContainer: AppColors.backgroundDark,
+      // Secundario
+      secondary: AppColors.secondary,
+      onSecondary: AppColors.backgroundDark,
+      secondaryContainer: Color(0xFFFFDDD0),
+      onSecondaryContainer: AppColors.backgroundDark,
+      // Superficie
       surface: AppColors.surface,
-      onSurface: AppColors.textPrimary,
-      surfaceContainerHighest: AppColors.surfaceElevated,
-      onSurfaceVariant: AppColors.textSecondary,
-      error: AppColors.dirty,
+      onSurface: AppColors.backgroundDark,
+      surfaceContainerHighest: AppColors.backgroundLight,
+      onSurfaceVariant: Color(0xFF555555),
+      // Error
+      error: Color(0xFFB00020),
       onError: Colors.white,
-      errorContainer: Color(0xFF4A0F0F),
-      onErrorContainer: AppColors.dirty,
-      outline: AppColors.border,
-      outlineVariant: Color(0xFF1E2130),
-      shadow: Colors.black54,
-      scrim: Colors.black87,
-      inverseSurface: AppColors.textPrimary,
-      onInverseSurface: AppColors.background,
-      inversePrimary: AppColors.primaryDark,
+      errorContainer: Color(0xFFFFDAD6),
+      onErrorContainer: Color(0xFF410002),
+      // Outline
+      outline: Color(0xFFBDBDBD),
+      outlineVariant: Color(0xFFE0E0E0),
+      // Misc
+      shadow: Colors.black26,
+      scrim: Colors.black54,
+      inverseSurface: AppColors.backgroundDark,
+      onInverseSurface: AppColors.surface,
+      inversePrimary: AppColors.secondary,
     ),
-
-    // ── AppBar ──────────────────────────────────────────────────────────────
+    scaffoldBackgroundColor: AppColors.backgroundLight,
+    cardColor: AppColors.surface,
+    dividerColor: const Color(0xFFE0E0E0),
     appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.surface,
-      foregroundColor: AppColors.textPrimary,
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
       elevation: 0,
-      centerTitle: false,
+      centerTitle: true,
     ),
-
-    // ── Botones elevados ─────────────────────────────────────────────────────
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 18),
-        textStyle: GoogleFonts.poppins(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
+    ),
+  );
 
-    // ── Cards ────────────────────────────────────────────────────────────────
-    cardTheme: CardThemeData(
-      color: AppColors.surface,
+  // ─────────────────────────────── Tema Oscuro ─────────────────────────────
+  static final ThemeData _darkTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    textTheme: _poppinsDark,
+    colorScheme: const ColorScheme(
+      brightness: Brightness.dark,
+      // Primario
+      primary: AppColors.primary,
+      onPrimary: Colors.white,
+      primaryContainer: Color(0xFF8C3000),
+      onPrimaryContainer: AppColors.secondary,
+      // Secundario
+      secondary: AppColors.secondary,
+      onSecondary: AppColors.backgroundDark,
+      secondaryContainer: Color(0xFF5D3728),
+      onSecondaryContainer: AppColors.secondary,
+      // Superficie
+      surface: Color(0xFF1E1E1E),
+      onSurface: AppColors.backgroundLight,
+      surfaceContainerHighest: AppColors.backgroundDark,
+      onSurfaceVariant: Color(0xFFBDBDBD),
+      // Error
+      error: Color(0xFFCF6679),
+      onError: Colors.black,
+      errorContainer: Color(0xFF93000A),
+      onErrorContainer: Color(0xFFFFDAD6),
+      // Outline
+      outline: Color(0xFF555555),
+      outlineVariant: Color(0xFF404040),
+      // Misc
+      shadow: Colors.black54,
+      scrim: Colors.black87,
+      inverseSurface: AppColors.backgroundLight,
+      onInverseSurface: AppColors.backgroundDark,
+      inversePrimary: Color(0xFF8C3000),
+    ),
+    scaffoldBackgroundColor: const Color(0xFF121212),
+    cardColor: AppColors.backgroundDark,
+    dividerColor: const Color(0xFF404040),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: AppColors.backgroundDark,
+      foregroundColor: AppColors.backgroundLight,
       elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.border),
-      ),
-      margin: EdgeInsets.zero,
+      centerTitle: true,
     ),
-
-    // ── Iconos ───────────────────────────────────────────────────────────────
-    iconTheme: const IconThemeData(
-      color: AppColors.textSecondary,
-      size: 24,
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: AppColors.backgroundDark,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: Color(0xFF555555)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
+      ),
     ),
   );
 }
