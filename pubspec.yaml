@@ -1,5 +1,5 @@
 name: hotel_smart_app
-description: "A new Flutter project."
+description: "Smart TV dashboard para gestión hotelera en tiempo real."
 publish_to: 'none'
 version: 0.1.0+1
 
@@ -9,6 +9,19 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+
+  # Navegación declarativa (mismo paquete que hotel_app)
+  go_router: ^14.8.1
+
+  # Firebase - misma base de datos que hotel_app
+  firebase_core: ^3.13.1
+  cloud_firestore: ^5.6.9
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Fuentes
+  google_fonts: ^6.3.1
 
 dev_dependencies:
   flutter_test:
