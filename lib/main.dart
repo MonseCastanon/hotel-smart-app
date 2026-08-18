@@ -1,20 +1,56 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hotel_smart_app/config/router/router.dart';
+import 'package:hotel_smart_app/config/theme/app_theme.dart';
 
-void main() {
-  runApp(const MainApp());
+// TODO: Ejecutar `flutterfire configure` para generar este archivo.
+// import 'firebase_options.dart';
+
+void main() async {
+  // 1. Inicializar los bindings de Flutter antes de cualquier operación async.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. Forzar orientación horizontal (landscape) — Smart TV siempre en este modo.
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+
+  // 3. UI en modo inmersivo: oculta barras del sistema para aprovechar la pantalla completa.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+  // 4. Inicializar Firebase.
+  //    Usa la misma configuración que hotel_app para compartir la base de datos
+  //    en tiempo real con el resto de apps del proyecto.
+  await Firebase.initializeApp(
+    // options: DefaultFirebaseOptions.currentPlatform, // descomentar tras flutterfire configure
+  );
+
+  // 5. Levantar la app envuelta en ProviderScope para Riverpod.
+  runApp(
+    const ProviderScope(
+      child: HotelSmartApp(),
+    ),
+  );
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+/// Widget raíz de la Smart TV.
+class HotelSmartApp extends StatelessWidget {
+  const HotelSmartApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
-      ),
+    return MaterialApp.router(
+      title: 'Hotel Smart TV',
+      debugShowCheckedModeBanner: false,
+
+      // Tema único oscuro diseñado para pantallas grandes a distancia.
+      theme: const AppTheme().getTheme(),
+
+      // Router declarativo con go_router (mismo paquete que hotel_app).
+      routerConfig: appRouter,
     );
   }
 }
