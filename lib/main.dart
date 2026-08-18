@@ -1,4 +1,4 @@
-import 'package:firebase_core/firebase_core.dart';
+// import 'package:firebase_core/firebase_core.dart'; // descomentar tras flutterfire configure
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -24,9 +24,13 @@ void main() async {
   // 4. Inicializar Firebase.
   //    Usa la misma configuración que hotel_app para compartir la base de datos
   //    en tiempo real con el resto de apps del proyecto.
-  await Firebase.initializeApp(
-    // options: DefaultFirebaseOptions.currentPlatform, // descomentar tras flutterfire configure
-  );
+  //
+  //    ⚠️  PENDIENTE: ejecuta `flutterfire configure` para generar
+  //    firebase_options.dart y google-services.json, luego descomenta:
+  //
+  // await Firebase.initializeApp(
+  //   options: DefaultFirebaseOptions.currentPlatform,
+  // );
 
   // 5. Levantar la app envuelta en ProviderScope para Riverpod.
   runApp(

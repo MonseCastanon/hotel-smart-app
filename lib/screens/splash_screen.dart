@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hotel_smart_app/config/router/app_router.dart';
-import 'package:hotel_smart_app/config/services/hotel_service.dart';
+// import 'package:hotel_smart_app/config/services/hotel_service.dart'; // habilitar tras flutterfire configure
 
 /// Pantalla de carga inicial de la Smart TV.
 ///
@@ -62,18 +62,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     });
 
     try {
-      // Verificar que el servicio de Firestore responde con un ping ligero.
-      // Lee la colección 'rooms' con limit(1) para confirmar la conexión.
-      final service = ref.read(hotelServiceProvider);
-      await service
-          .watchRooms()
-          .first
-          .timeout(const Duration(seconds: 10));
+      // TODO: Cuando Firebase esté configurado (`flutterfire configure`),
+      // reemplazar este delay por la verificación real de conexión:
+      //
+      // final service = ref.read(hotelServiceProvider);
+      // await service.watchRooms().first.timeout(const Duration(seconds: 10));
 
-      if (!mounted) return;
-
-      // Pequeña pausa para que la animación sea visible
-      await Future<void>.delayed(const Duration(milliseconds: 600));
+      // Simula el tiempo de inicialización mientras Firebase no está configurado.
+      await Future<void>.delayed(const Duration(seconds: 2));
 
       if (!mounted) return;
       context.go(AppRoutes.home);
