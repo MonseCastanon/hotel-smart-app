@@ -79,11 +79,19 @@ class HotelService {
   // Tareas / Actividad reciente
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Stream de las últimas [limit] tareas, ordenadas por fecha descendente.
+  /// Stream de las últimas [limit] tareas, ordenadas por createdAt descendente.
+  /// El campo es `createdAt` (ISO8601 string) tal como lo guarda Hotel-Project.
   Stream<QuerySnapshot<Map<String, dynamic>>> watchRecentTasks({
     int limit = 20,
   }) =>
-      _tasks.orderBy('date', descending: true).limit(limit).snapshots();
+      _tasks.orderBy('createdAt', descending: true).limit(limit).snapshots();
+
+  /// Stream de tareas activas (pending + inProgress) para el dashboard.
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveTasks() =>
+      _tasks
+          .where('status', whereIn: ['pending', 'inProgress'])
+          .orderBy('priority', descending: true)
+          .snapshots();
 
   // ─────────────────────────────────────────────────────────────────────────
   // Notificaciones / Alertas

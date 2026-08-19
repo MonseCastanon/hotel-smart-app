@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hotel_smart_app/config/router/app_router.dart';
-// import 'package:hotel_smart_app/config/services/hotel_service.dart'; // habilitar tras flutterfire configure
 
 /// Pantalla de carga inicial de la Smart TV.
 ///
-/// Se muestra mientras:
-///   1. Flutter finaliza la inicialización de los bindings.
-///   2. Firebase / Firestore se conecta y valida la disponibilidad.
-///
-/// Una vez lista la conexión navega automáticamente a [HomeScreen].
-/// Si la conexión falla muestra un mensaje de error con botón de reintento.
+/// Muestra el logo animado mientras se completa la inicialización de Flutter
+/// y Firebase. Navega automáticamente a [HomeScreen] tras la animación.
+/// Cada pantalla gestiona su propio estado de carga/error de Firebase
+/// a través de los providers de Riverpod (loading → data → error).
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
@@ -25,9 +22,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late final AnimationController _controller;
   late final Animation<double> _fadeAnim;
   late final Animation<double> _scaleAnim;
-
-  String? _errorMessage;
-  bool _isRetrying = false;
 
   @override
   void initState() {
@@ -44,7 +38,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
 
     _controller.forward();
-    _init();
+    _navigateToHome();
   }
 
   @override
@@ -55,31 +49,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   // ── Lógica de inicialización ──────────────────────────────────────────────
 
-  Future<void> _init() async {
-    setState(() {
-      _errorMessage = null;
-      _isRetrying = false;
-    });
-
-    try {
-      // TODO: Cuando Firebase esté configurado (`flutterfire configure`),
-      // reemplazar este delay por la verificación real de conexión:
-      //
-      // final service = ref.read(hotelServiceProvider);
-      // await service.watchRooms().first.timeout(const Duration(seconds: 10));
-
-      // Simula el tiempo de inicialización mientras Firebase no está configurado.
-      await Future<void>.delayed(const Duration(seconds: 2));
-
-      if (!mounted) return;
-      context.go(AppRoutes.home);
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage =
-            'No se pudo conectar con el servidor.\nVerifica la red e intenta de nuevo.';
-      });
-    }
+  Future<void> _navigateToHome() async {
+    // Espera a que la animación termine (900 ms) + margen visual (900 ms más).
+    // Navega a Home siempre — Firebase se inicializa en background.
+    // Cada pantalla muestra su propio spinner de carga vía Riverpod AsyncValue.
+    await Future<void>.delayed(const Duration(milliseconds: 1800));
+    if (!mounted) return;
+    context.go(AppRoutes.home);
   }
 
   // ── UI ────────────────────────────────────────────────────────────────────
@@ -143,68 +119,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                 const SizedBox(height: 48),
 
-                // ── Estado: cargando / error ─────────────────────────────────
-                if (_errorMessage == null)
-                  _buildLoader(colors)
-                else
-                  _buildError(colors),
+                // ── Loader ───────────────────────────────────────────────────
+                SizedBox(
+                  width: 40,
+                  height: 40,
+                  child: CircularProgressIndicator(
+                    color: colors.primary,
+                    strokeWidth: 3,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Iniciando…',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildLoader(ColorScheme colors) {
-    return Column(
-      children: [
-        SizedBox(
-          width: 40,
-          height: 40,
-          child: CircularProgressIndicator(
-            color: colors.primary,
-            strokeWidth: 3,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Conectando con el servidor…',
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildError(ColorScheme colors) {
-    return Column(
-      children: [
-        Icon(Icons.wifi_off_rounded, size: 48, color: colors.error),
-        const SizedBox(height: 12),
-        Text(
-          _errorMessage!,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colors.error,
-              ),
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton.icon(
-          autofocus: true,
-          onPressed: _isRetrying ? null : _init,
-          icon: _isRetrying
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
-              : const Icon(Icons.refresh_rounded),
-          label: Text(_isRetrying ? 'Reintentando…' : 'Reintentar'),
-        ),
-      ],
     );
   }
 }
