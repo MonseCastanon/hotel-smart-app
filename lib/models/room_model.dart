@@ -113,6 +113,32 @@ class RoomModel {
     );
   }
 
+  /// Crea un [RoomModel] desde un mapa JSON (respuesta del API REST).
+  factory RoomModel.fromJson(Map<String, dynamic> json) {
+    final rawNumber = json['roomNumber'] ?? json['number'];
+    final numero = rawNumber?.toString() ?? '';
+
+    final rawFloor = json['floor'];
+    int piso = 0;
+    if (rawFloor is int) {
+      piso = rawFloor;
+    } else if (rawFloor is String) {
+      piso = int.tryParse(rawFloor) ?? 0;
+    } else if (numero.isNotEmpty) {
+      piso = int.tryParse(numero[0]) ?? 0;
+    }
+
+    return RoomModel(
+      id: json['id']?.toString() ?? json['_id']?.toString() ?? numero,
+      numero: numero,
+      piso: piso,
+      tipo: RoomType.fromString(json['roomType'] ?? json['type']),
+      estado: RoomStatus.fromString(json['status']),
+      precio: (json['pricePerNight'] as num?)?.toDouble(),
+      descripcion: json['description'] as String?,
+    );
+  }
+
   Color get statusColor => switch (estado) {
         RoomStatus.available => const Color(0xFF4CAF50),
         RoomStatus.occupied => const Color(0xFFFF9800),
