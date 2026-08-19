@@ -41,14 +41,17 @@ class HotelService {
 
   /// Stream de todos los documentos de la colección `rooms`.
   /// Emite una nueva lista cada vez que algún documento cambia en Firestore.
+  /// Se ordena por `roomNumber` (campo real en Firestore).
   Stream<QuerySnapshot<Map<String, dynamic>>> watchRooms() =>
-      _rooms.orderBy('number').snapshots();
+      _rooms.orderBy('roomNumber').snapshots();
 
   /// Stream filtrado por [floor] (campo `floor` en Firestore).
+  /// Nota: Firestore requiere un índice compuesto para where+orderBy en
+  /// campos distintos. El ordenamiento final se hace en el cliente.
   Stream<QuerySnapshot<Map<String, dynamic>>> watchRoomsByFloor(int floor) =>
       _rooms
           .where('floor', isEqualTo: floor)
-          .orderBy('number')
+          .orderBy('roomNumber')
           .snapshots();
 
   // ─────────────────────────────────────────────────────────────────────────
