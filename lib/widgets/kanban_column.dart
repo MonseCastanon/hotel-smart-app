@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/task_model.dart';
 import 'task_card.dart';
@@ -7,16 +8,13 @@ import 'task_card.dart';
 /// Cada columna tiene:
 ///   - Header con icono, título y badge con contador de items
 ///   - Cuerpo scrolleable con tarjetas de tarea (ListView.builder)
+///   - Autoscroll si hay más de 3 tareas
 ///   - Diseño adaptado al tema oscuro de la app
-///
-/// Se usa en el [HomeScreen] para las columnas:
-///   "Tareas Pendientes", "En Progreso" y "Personal Asignado".
-class KanbanColumn extends StatelessWidget {
+class KanbanColumn extends StatefulWidget {
   final String title;
   final IconData icon;
   final Color color;
   final List<TaskModel> tasks;
-  final bool isStaffColumn;
 
   const KanbanColumn({
     super.key,
@@ -24,8 +22,81 @@ class KanbanColumn extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.tasks,
-    this.isStaffColumn = false,
   });
+
+  @override
+  State<KanbanColumn> createState() => _KanbanColumnState();
+}
+
+class _KanbanColumnState extends State<KanbanColumn> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isScrolling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAutoScroll();
+  }
+
+  @override
+  void didUpdateWidget(covariant KanbanColumn oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.tasks.length != oldWidget.tasks.length) {
+      _checkAutoScroll();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _checkAutoScroll() {
+    if (widget.tasks.length > 3 && !_isScrolling) {
+      _isScrolling = true;
+      Future.delayed(const Duration(seconds: 2), _autoScrollLoop);
+    } else if (widget.tasks.length <= 3) {
+      _isScrolling = false;
+    }
+  }
+
+  Future<void> _autoScrollLoop() async {
+    while (_isScrolling && mounted) {
+      if (!_scrollController.hasClients) {
+        await Future.delayed(const Duration(seconds: 1));
+        continue;
+      }
+
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      if (maxScroll <= 0) {
+        await Future.delayed(const Duration(seconds: 2));
+        continue;
+      }
+
+      // Scroll hacia abajo
+      await _scrollController.animateTo(
+        maxScroll,
+        duration: const Duration(seconds: 8),
+        curve: Curves.linear,
+      );
+
+      if (!mounted || !_isScrolling) break;
+      await Future.delayed(const Duration(seconds: 2));
+
+      if (!mounted || !_isScrolling) break;
+
+      // Scroll rápido hacia arriba
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.easeOut,
+      );
+
+      if (!mounted || !_isScrolling) break;
+      await Future.delayed(const Duration(seconds: 2));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +105,7 @@ class KanbanColumn extends StatelessWidget {
         color: const Color(0xFF161825),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: color.withValues(alpha: 0.2),
+          color: widget.color.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -45,11 +116,9 @@ class KanbanColumn extends StatelessWidget {
 
           // ── Cuerpo scrolleable ─────────────────────────────────────────
           Expanded(
-            child: tasks.isEmpty
+            child: widget.tasks.isEmpty
                 ? _buildEmptyState()
-                : isStaffColumn
-                    ? _buildStaffList()
-                    : _buildTaskList(),
+                : _buildTaskList(),
           ),
         ],
       ),
@@ -61,11 +130,11 @@ class KanbanColumn extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: widget.color.withValues(alpha: 0.08),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
         border: Border(
           bottom: BorderSide(
-            color: color.withValues(alpha: 0.15),
+            color: widget.color.withValues(alpha: 0.15),
             width: 1,
           ),
         ),
@@ -75,15 +144,15 @@ class KanbanColumn extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
+              color: widget.color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, size: 20, color: color),
+            child: Icon(widget.icon, size: 20, color: widget.color),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              title,
+              widget.title,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -96,13 +165,13 @@ class KanbanColumn extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
+              color: widget.color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
-              '${tasks.length}',
+              '${widget.tasks.length}',
               style: TextStyle(
-                color: color,
+                color: widget.color,
                 fontWeight: FontWeight.w800,
                 fontSize: 14,
               ),
@@ -116,144 +185,18 @@ class KanbanColumn extends StatelessWidget {
   /// Lista de tareas con scroll vertical.
   Widget _buildTaskList() {
     return ListView.builder(
+      controller: _scrollController,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.all(12),
-      itemCount: tasks.length,
+      itemCount: widget.tasks.length,
       itemBuilder: (context, index) {
-        final task = tasks[index];
+        final task = widget.tasks[index];
         return TaskCard(
           serviceType: task.serviceType,
           assignedTo: task.assignedTo,
           room: task.room,
           timeLabel: task.formattedDate,
           status: task.status,
-        );
-      },
-    );
-  }
-
-  /// Lista agrupada por personal asignado.
-  Widget _buildStaffList() {
-    // Agrupar tareas por persona asignada
-    final staffMap = <String, List<TaskModel>>{};
-    for (final task in tasks) {
-      staffMap.putIfAbsent(task.assignedTo, () => []).add(task);
-    }
-
-    final staffEntries = staffMap.entries.toList();
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: staffEntries.length,
-      itemBuilder: (context, index) {
-        final entry = staffEntries[index];
-        final name = entry.key;
-        final staffTasks = entry.value;
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E2030),
-            borderRadius: BorderRadius.circular(12),
-            border: Border(
-              left: BorderSide(color: color, width: 4),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Nombre del empleado ──────────────────────────────────
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: color.withValues(alpha: 0.2),
-                      child: Text(
-                        name.isNotEmpty ? name[0].toUpperCase() : '?',
-                        style: TextStyle(
-                          color: color,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    // Badge tareas activas
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${staffTasks.length} tarea${staffTasks.length != 1 ? 's' : ''}',
-                        style: TextStyle(
-                          color: color,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 8),
-
-                // ── Lista de tareas del empleado ─────────────────────────
-                ...staffTasks.map((task) => Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: task.status == 'in_progress'
-                                  ? const Color(0xFF3B82F6)
-                                  : const Color(0xFFFF661A),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '${task.serviceType} — Hab. ${task.room}',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.65),
-                                fontSize: 12,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            task.statusLabel,
-                            style: TextStyle(
-                              color: task.status == 'in_progress'
-                                  ? const Color(0xFF3B82F6)
-                                  : const Color(0xFFFF661A),
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )),
-              ],
-            ),
-          ),
         );
       },
     );

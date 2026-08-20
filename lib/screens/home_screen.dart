@@ -14,11 +14,11 @@ import '../widgets/kanban_column.dart';
 /// Layout en landscape:
 ///   ┌──────────────────────────────────────────────────────┐
 ///   │  🔔 Panel de Alertas (colapsable, scrolleable)       │
-///   ├──────────────┬──────────────┬─────────────────────────┤
-///   │  Pendientes  │  En Progreso │  Personal Asignado      │
-///   │  (pending)   │  (in_progress)│  (agrupado por persona) │
-///   │              │              │                         │
-///   └──────────────┴──────────────┴─────────────────────────┘
+///   ├───────────────────────┬──────────────────────────────┤
+///   │      Pendientes       │         En Progreso          │
+///   │      (pending)        │         (in_progress)        │
+///   │                       │                              │
+///   └───────────────────────┴──────────────────────────────┘
 ///
 /// Se excluyen tareas completadas del tablero.
 /// Las alertas se limitan a 10, ordenadas por fecha descendente.
@@ -36,8 +36,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<NotificationModel> _alerts = [];
   bool _isLoadingTasks = true;
   bool _isLoadingAlerts = true;
-  bool _usingDummyTasks = false;
-  bool _usingDummyAlerts = false;
 
   // ── Firestore streams ─────────────────────────────────────────────────────
   final TasksDatasource _tasksDatasource = TasksDatasource();
@@ -51,20 +49,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   /// Suscribirse a los streams de Firestore.
-  /// Si la colección está vacía o falla, usa datos dummy como fallback.
   void _subscribeToFirestore() {
     // ── Tareas Pendientes ────────────────────────────────────────────────────
     _tasksDatasource.watchPendingTasks().listen(
       (tasks) {
         if (mounted) {
           setState(() {
-            if (tasks.isNotEmpty) {
-              _pendingTasks = tasks;
-              _usingDummyTasks = false;
-            } else if (_pendingTasks.isEmpty) {
-              _pendingTasks = TasksDatasource.getDummyPendingTasks();
-              _usingDummyTasks = true;
-            }
+            _pendingTasks = tasks;
             _isLoadingTasks = false;
           });
         }
@@ -72,8 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onError: (error) {
         if (mounted) {
           setState(() {
-            _pendingTasks = TasksDatasource.getDummyPendingTasks();
-            _usingDummyTasks = true;
+            _pendingTasks = [];
             _isLoadingTasks = false;
           });
         }
@@ -85,18 +75,14 @@ class _HomeScreenState extends State<HomeScreen> {
       (tasks) {
         if (mounted) {
           setState(() {
-            if (tasks.isNotEmpty) {
-              _inProgressTasks = tasks;
-            } else if (_inProgressTasks.isEmpty) {
-              _inProgressTasks = TasksDatasource.getDummyInProgressTasks();
-            }
+            _inProgressTasks = tasks;
           });
         }
       },
       onError: (error) {
         if (mounted) {
           setState(() {
-            _inProgressTasks = TasksDatasource.getDummyInProgressTasks();
+            _inProgressTasks = [];
           });
         }
       },
@@ -107,13 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
       (alerts) {
         if (mounted) {
           setState(() {
-            if (alerts.isNotEmpty) {
-              _alerts = alerts;
-              _usingDummyAlerts = false;
-            } else if (_alerts.isEmpty) {
-              _alerts = NotificationsDatasource.getDummyNotifications();
-              _usingDummyAlerts = true;
-            }
+            _alerts = alerts;
             _isLoadingAlerts = false;
           });
         }
@@ -121,8 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onError: (error) {
         if (mounted) {
           setState(() {
-            _alerts = NotificationsDatasource.getDummyNotifications();
-            _usingDummyAlerts = true;
+            _alerts = [];
             _isLoadingAlerts = false;
           });
         }
@@ -132,9 +111,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Combinar todas las tareas activas para la columna "Personal Asignado"
-    final allActiveTasks = [..._pendingTasks, ..._inProgressTasks];
-
     return Scaffold(
       backgroundColor: const Color(0xFF0F1117),
       body: SafeArea(
@@ -146,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // ── Panel de Alertas (colapsable) ────────────────────────────
             if (!_isLoadingAlerts) AlertsPanel(alerts: _alerts),
 
-            // ── Tablero Kanban (3 columnas) ──────────────────────────────
+            // ── Tablero Kanban (2 columnas) ──────────────────────────────
             Expanded(
               child: _isLoadingTasks
                   ? const Center(
@@ -177,19 +153,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.trending_up_rounded,
                               color: const Color(0xFF3B82F6), // Azul
                               tasks: _inProgressTasks,
-                            ),
-                          ),
-
-                          const SizedBox(width: 16),
-
-                          // ── Columna 3: Personal Asignado ───────────────
-                          Expanded(
-                            child: KanbanColumn(
-                              title: 'Personal Asignado',
-                              icon: Icons.groups_rounded,
-                              color: const Color(0xFF10B981), // Verde
-                              tasks: allActiveTasks,
-                              isStaffColumn: true,
                             ),
                           ),
                         ],
@@ -256,37 +219,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
 
           const Spacer(),
-
-          // Indicador de datos dummy vs live
-          if (_usingDummyTasks || _usingDummyAlerts)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.amber.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, size: 14, color: Colors.amber),
-                  SizedBox(width: 6),
-                  Text(
-                    'Datos de demostración',
-                    style: TextStyle(
-                      color: Colors.amber,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-          const SizedBox(width: 16),
 
           // Reloj
           StreamBuilder(
