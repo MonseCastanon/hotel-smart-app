@@ -33,42 +33,4 @@ class NotificationsDatasource {
             .toList());
   }
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Datos dummy (fallback cuando Firestore está vacío)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /// Alertas de ejemplo para visualización.
-  static List<NotificationModel> getDummyNotifications() {
-    final now = DateTime.now();
-    return [
-      NotificationModel(
-        id: 'notif-1',
-        title: 'Limpieza Urgente',
-        description: 'El huésped de la 801 solicita limpieza inmediata.',
-        relatedRoom: 'Hab. 801',
-        createdAt: now.subtract(const Duration(minutes: 2)),
-      ),
-      NotificationModel(
-        id: 'notif-2',
-        title: 'Mantenimiento A/C',
-        description: 'Aire acondicionado reportado como defectuoso.',
-        relatedRoom: 'Hab. 302',
-        createdAt: now.subtract(const Duration(minutes: 15)),
-      ),
-      NotificationModel(
-        id: 'notif-3',
-        title: 'Check-out Atrasado',
-        description: 'El huésped no ha realizado check-out a tiempo.',
-        relatedRoom: 'Hab. 505',
-        createdAt: now.subtract(const Duration(minutes: 45)),
-      ),
-      NotificationModel(
-        id: 'notif-4',
-        title: 'Suministros Bajos',
-        description: 'Piso 4 reporta falta de amenidades de baño.',
-        relatedRoom: 'Piso 4',
-        createdAt: now.subtract(const Duration(hours: 1)),
-      ),
-    ];
-  }
 }
