@@ -1,66 +1,53 @@
+/// Modelo de tarea para el tablero Kanban de la Smart TV.
+///
+/// Representa un documento de la colección `tasks` en Firestore.
+/// Se excluyen tareas con status 'completed' del tablero.
 class TaskModel {
   final String id;
   final String serviceType;
   final String assignedTo;
   final String room;
-  final String date;
   final String status;
-  final String? guestName;
-  final int priority;
+  final DateTime createdAt;
 
   const TaskModel({
-    this.id = '',
+    required this.id,
     required this.serviceType,
     required this.assignedTo,
     required this.room,
-    required this.date,
     required this.status,
-    this.guestName,
-    this.priority = 3,
+    required this.createdAt,
   });
 
-  /// Crea un [TaskModel] desde un documento Firestore.
-  /// Compatible con el esquema de [FirebaseTaskService] en Hotel-Project.
-  factory TaskModel.fromFirestore(String docId, Map<String, dynamic> data) {
-    final createdAt = _parseDate(data['createdAt']);
-    final formattedDate = _formatDate(createdAt);
-
-    final taskType = data['taskType'] as String? ?? 'cleaning';
-    final serviceType = switch (taskType) {
-      'cleaning' => 'Limpieza',
-      'maintenance' => 'Mantenimiento',
-      'inspection' => 'Inspección',
-      'delivery' => 'Entrega',
-      'guest_request' => 'Solicitud',
-      _ => taskType,
-    };
-
-    final rawStatus = data['status'] as String? ?? 'pending';
-    final status = switch (rawStatus) {
-      'pending' => 'Pendiente',
-      'inProgress' => 'En proceso',
-      'completed' => 'Completado',
-      'cancelled' => 'Cancelado',
-      _ => rawStatus,
-    };
-
-    final roomNumber = data['roomNumber'] as int? ?? 0;
-
+  /// Crea un [TaskModel] a partir de un documento de Firestore.
+  factory TaskModel.fromFirestore(
+    String docId,
+    Map<String, dynamic> data,
+  ) {
     return TaskModel(
       id: docId,
-      serviceType: serviceType,
-      assignedTo: data['assignedTo'] as String? ?? '—',
-      room: roomNumber.toString(),
-      date: formattedDate,
-      status: status,
-      guestName: data['guestName'] as String?,
-      priority: (data['priority'] as num?)?.toInt() ?? 3,
+      serviceType: data['serviceType'] as String? ?? data['type'] as String? ?? 'Sin tipo',
+      assignedTo: data['assignedTo'] as String? ?? 'Sin asignar',
+      room: data['room'] as String? ?? data['roomNumber'] as String? ?? '—',
+      status: data['status'] as String? ?? 'pending',
+      createdAt: _parseDate(data['createdAt'] ?? data['date']),
     );
   }
 
+  /// Convierte el modelo a un mapa compatible con Firestore.
+  Map<String, dynamic> toFirestore() => {
+        'serviceType': serviceType,
+        'assignedTo': assignedTo,
+        'room': room,
+        'status': status,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  /// Helper para parsear fechas de Firestore (Timestamp, String o null).
   static DateTime _parseDate(dynamic value) {
     if (value == null) return DateTime.now();
     if (value is String) return DateTime.tryParse(value) ?? DateTime.now();
+    // Firestore Timestamp
     try {
       return (value as dynamic).toDate() as DateTime;
     } catch (_) {
@@ -68,20 +55,28 @@ class TaskModel {
     }
   }
 
-  static String _formatDate(DateTime dt) {
+  /// Formato legible de la fecha para la UI.
+  String get formattedDate {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final date = DateTime(dt.year, dt.month, dt.day);
+    final diff = now.difference(createdAt);
 
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-
-    if (date == today) return 'Hoy, $hour:$minute';
-    final diff = today.difference(date).inDays;
-    if (diff == 1) return 'Ayer, $hour:$minute';
-    return '${dt.day}/${dt.month}, $hour:$minute';
+    if (diff.inMinutes < 1) return 'Ahora';
+    if (diff.inMinutes < 60) return 'Hace ${diff.inMinutes} min';
+    if (diff.inHours < 24) return 'Hace ${diff.inHours}h';
+    return '${createdAt.day}/${createdAt.month} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}';
   }
 
-  /// Retorna true si la tarea está activa (pendiente o en proceso)
-  bool get isActive => status == 'Pendiente' || status == 'En proceso';
+  /// Etiqueta legible del estado.
+  String get statusLabel {
+    switch (status) {
+      case 'pending':
+        return 'Pendiente';
+      case 'in_progress':
+        return 'En Progreso';
+      case 'completed':
+        return 'Completado';
+      default:
+        return status;
+    }
+  }
 }

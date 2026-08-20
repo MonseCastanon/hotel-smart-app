@@ -1,228 +1,308 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/tasks_provider.dart';
-import '../providers/rooms_provider.dart';
-import '../providers/notifications_provider.dart';
-import '../widgets/notification_banner.dart';
-import '../widgets/room_type_card.dart';
-import '../widgets/activity_table.dart';
-import '../config/theme/app_theme.dart';
+import '../data/notifications_datasource.dart';
+import '../data/tasks_datasource.dart';
+import '../models/notification_model.dart';
+import '../models/task_model.dart';
+import '../widgets/alerts_panel.dart';
+import '../widgets/kanban_column.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
+/// Pantalla principal de la Smart TV — Tablero de Control Kanban.
+///
+/// Centro de mando visual (Back of House) para que gerentes o coordinadores
+/// monitoreen en tiempo real el estado de las tareas del personal.
+///
+/// Layout en landscape:
+///   ┌──────────────────────────────────────────────────────┐
+///   │  🔔 Panel de Alertas (colapsable, scrolleable)       │
+///   ├──────────────┬──────────────┬─────────────────────────┤
+///   │  Pendientes  │  En Progreso │  Personal Asignado      │
+///   │  (pending)   │  (in_progress)│  (agrupado por persona) │
+///   │              │              │                         │
+///   └──────────────┴──────────────┴─────────────────────────┘
+///
+/// Se excluyen tareas completadas del tablero.
+/// Las alertas se limitan a 10, ordenadas por fecha descendente.
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
-  bool _notificationShown = false;
+class _HomeScreenState extends State<HomeScreen> {
+  // ── Datos ──────────────────────────────────────────────────────────────────
+  List<TaskModel> _pendingTasks = [];
+  List<TaskModel> _inProgressTasks = [];
+  List<NotificationModel> _alerts = [];
+  bool _isLoadingTasks = true;
+  bool _isLoadingAlerts = true;
+  bool _usingDummyTasks = false;
+  bool _usingDummyAlerts = false;
+
+  // ── Firestore streams ─────────────────────────────────────────────────────
+  final TasksDatasource _tasksDatasource = TasksDatasource();
+  final NotificationsDatasource _notificationsDatasource =
+      NotificationsDatasource();
 
   @override
   void initState() {
     super.initState();
-    // Muestra la primera notificación activa de Firestore cuando llegue
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scheduleNotification();
-    });
+    _subscribeToFirestore();
   }
 
-  void _scheduleNotification() {
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (!mounted || _notificationShown) return;
-      final notificationsAsync = ref.read(notificationsProvider);
-      notificationsAsync.whenData((notifications) {
-        if (notifications.isNotEmpty && mounted && !_notificationShown) {
-          _notificationShown = true;
-          NotificationBanner.show(context, notifications.first);
+  /// Suscribirse a los streams de Firestore.
+  /// Si la colección está vacía o falla, usa datos dummy como fallback.
+  void _subscribeToFirestore() {
+    // ── Tareas Pendientes ────────────────────────────────────────────────────
+    _tasksDatasource.watchPendingTasks().listen(
+      (tasks) {
+        if (mounted) {
+          setState(() {
+            if (tasks.isNotEmpty) {
+              _pendingTasks = tasks;
+              _usingDummyTasks = false;
+            } else if (_pendingTasks.isEmpty) {
+              _pendingTasks = TasksDatasource.getDummyPendingTasks();
+              _usingDummyTasks = true;
+            }
+            _isLoadingTasks = false;
+          });
         }
-      });
-    });
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _pendingTasks = TasksDatasource.getDummyPendingTasks();
+            _usingDummyTasks = true;
+            _isLoadingTasks = false;
+          });
+        }
+      },
+    );
+
+    // ── Tareas En Progreso ───────────────────────────────────────────────────
+    _tasksDatasource.watchInProgressTasks().listen(
+      (tasks) {
+        if (mounted) {
+          setState(() {
+            if (tasks.isNotEmpty) {
+              _inProgressTasks = tasks;
+            } else if (_inProgressTasks.isEmpty) {
+              _inProgressTasks = TasksDatasource.getDummyInProgressTasks();
+            }
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _inProgressTasks = TasksDatasource.getDummyInProgressTasks();
+          });
+        }
+      },
+    );
+
+    // ── Alertas ──────────────────────────────────────────────────────────────
+    _notificationsDatasource.watchActiveNotifications().listen(
+      (alerts) {
+        if (mounted) {
+          setState(() {
+            if (alerts.isNotEmpty) {
+              _alerts = alerts;
+              _usingDummyAlerts = false;
+            } else if (_alerts.isEmpty) {
+              _alerts = NotificationsDatasource.getDummyNotifications();
+              _usingDummyAlerts = true;
+            }
+            _isLoadingAlerts = false;
+          });
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          setState(() {
+            _alerts = NotificationsDatasource.getDummyNotifications();
+            _usingDummyAlerts = true;
+            _isLoadingAlerts = false;
+          });
+        }
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final tasksAsync = ref.watch(recentTasksProvider);
-    final statsAsync = ref.watch(roomStatsProvider);
+    // Combinar todas las tareas activas para la columna "Personal Asignado"
+    final allActiveTasks = [..._pendingTasks, ..._inProgressTasks];
 
     return Scaffold(
+      backgroundColor: const Color(0xFF0F1117),
       body: SafeArea(
-        child: FocusTraversalGroup(
-          child: Column(
-            children: [
-              Expanded(
-                child: Column(
-                  children: [
-                    // Top 60%: Actividad Reciente desde Firestore
-                    Expanded(
-                      flex: 3,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  'Actividad Reciente',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium,
-                                ),
-                                const SizedBox(width: 12),
-                                // Indicador de conexión en tiempo real
-                                tasksAsync.when(
-                                  data: (_) => _buildLiveDot(context),
-                                  loading: () => const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2),
-                                  ),
-                                  error: (e, _) => const Icon(
-                                      Icons.wifi_off,
-                                      size: 16,
-                                      color: Colors.red),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Expanded(
-                              child: tasksAsync.when(
-                                data: (tasks) {
-                                  if (tasks.isEmpty) {
-                                    return const Center(
-                                      child: Text(
-                                        'No hay actividad reciente',
-                                        style:
-                                            TextStyle(color: Colors.white54),
-                                      ),
-                                    );
-                                  }
-                                  return ActivityTable(
-                                    tasks: tasks.take(5).toList(),
-                                  );
-                                },
-                                loading: () => const Center(
-                                    child: CircularProgressIndicator()),
-                                error: (e, _) => _buildErrorWidget(
-                                    'Error cargando actividad'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+        child: Column(
+          children: [
+            // ── AppBar personalizada ──────────────────────────────────────
+            _buildAppBar(),
 
-                    // Bottom 40%: Estadísticas de Habitaciones desde Firestore
-                    Expanded(
-                      flex: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Estado de Habitaciones',
-                              style:
-                                  Theme.of(context).textTheme.headlineMedium,
+            // ── Panel de Alertas (colapsable) ────────────────────────────
+            if (!_isLoadingAlerts) AlertsPanel(alerts: _alerts),
+
+            // ── Tablero Kanban (3 columnas) ──────────────────────────────
+            Expanded(
+              child: _isLoadingTasks
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFFF661A),
+                      ),
+                    )
+                  : Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Row(
+                        children: [
+                          // ── Columna 1: Tareas Pendientes ───────────────
+                          Expanded(
+                            child: KanbanColumn(
+                              title: 'Tareas Pendientes',
+                              icon: Icons.pending_actions_rounded,
+                              color: const Color(0xFFFF661A), // Naranja
+                              tasks: _pendingTasks,
                             ),
-                            const SizedBox(height: 16),
-                            Expanded(
-                              child: statsAsync.when(
-                                data: (stats) => Row(
-                                  children: [
-                                    Expanded(
-                                      child: RoomTypeCard(
-                                        title: 'Ocupadas',
-                                        count: stats.occupied,
-                                        icon: Icons.hotel,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: RoomTypeCard(
-                                        title: 'Por Entregar',
-                                        count: stats.needsAttention,
-                                        icon: Icons.cleaning_services,
-                                        color: AppColors.secondary,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: RoomTypeCard(
-                                        title: 'Disponibles',
-                                        count: stats.available,
-                                        icon: Icons.check_circle_outline,
-                                        color: AppColors.success,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: RoomTypeCard(
-                                        title: 'Reservadas',
-                                        count: stats.reserved,
-                                        icon: Icons.luggage,
-                                        color: const Color(0xFF7C4DFF),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                loading: () => const Center(
-                                    child: CircularProgressIndicator()),
-                                error: (e, _) => _buildErrorWidget(
-                                    'Error cargando estadísticas'),
-                              ),
+                          ),
+
+                          const SizedBox(width: 16),
+
+                          // ── Columna 2: En Progreso ─────────────────────
+                          Expanded(
+                            child: KanbanColumn(
+                              title: 'En Progreso',
+                              icon: Icons.trending_up_rounded,
+                              color: const Color(0xFF3B82F6), // Azul
+                              tasks: _inProgressTasks,
                             ),
-                          ],
-                        ),
+                          ),
+
+                          const SizedBox(width: 16),
+
+                          // ── Columna 3: Personal Asignado ───────────────
+                          Expanded(
+                            child: KanbanColumn(
+                              title: 'Personal Asignado',
+                              icon: Icons.groups_rounded,
+                              color: const Color(0xFF10B981), // Verde
+                              tasks: allActiveTasks,
+                              isStaffColumn: true,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildLiveDot(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: const BoxDecoration(
-            color: Colors.green,
-            shape: BoxShape.circle,
+  /// AppBar personalizada para el tablero Kanban.
+  Widget _buildAppBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F1117),
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.white.withValues(alpha: 0.06),
+            width: 1,
           ),
         ),
-        const SizedBox(width: 4),
-        Text(
-          'En vivo',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.green.shade400,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildErrorWidget(String message) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      ),
+      child: Row(
         children: [
-          const Icon(Icons.cloud_off, size: 32, color: Colors.orange),
-          const SizedBox(height: 8),
-          Text(
-            message,
-            style: const TextStyle(color: Colors.orange, fontSize: 13),
+          // Logo
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFF661A).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.hotel_rounded,
+              size: 24,
+              color: Color(0xFFFF661A),
+            ),
+          ),
+          const SizedBox(width: 14),
+          // Título
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Centro de Mando',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              Text(
+                'Tablero Kanban — Tareas del Personal',
+                style: TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+            ],
+          ),
+
+          const Spacer(),
+
+          // Indicador de datos dummy vs live
+          if (_usingDummyTasks || _usingDummyAlerts)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.amber.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, size: 14, color: Colors.amber),
+                  SizedBox(width: 6),
+                  Text(
+                    'Datos de demostración',
+                    style: TextStyle(
+                      color: Colors.amber,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          const SizedBox(width: 16),
+
+          // Reloj
+          StreamBuilder(
+            stream: Stream.periodic(const Duration(seconds: 30)),
+            builder: (context, _) {
+              final now = DateTime.now();
+              return Text(
+                '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 22,
+                  fontWeight: FontWeight.w300,
+                  letterSpacing: 2,
+                ),
+              );
+            },
           ),
         ],
       ),

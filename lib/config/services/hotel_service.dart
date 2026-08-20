@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hotel_smart_app/models/reservation_model.dart';
 
 /// Servicio principal de datos de la Smart TV.
 ///
@@ -9,11 +8,13 @@ import 'package:hotel_smart_app/models/reservation_model.dart';
 /// se refleja en tiempo real en la pantalla Smart TV gracias a los
 /// [Stream]s de Firestore.
 ///
-/// Colecciones esperadas en Firestore:
-///   • `rooms`        → documentos de habitación
-///   • `reservations` → documentos de reservación
-///   • `tasks`        → actividad reciente (limpieza, etc.)
-///   • `notifications`→ alertas activas
+/// Colecciones utilizadas:
+///   • `tasks`         → tareas del personal (Kanban)
+///   • `notifications` → alertas activas
+///
+/// Nota: La colección `rooms` ya no se consulta desde esta app.
+/// El monitoreo de habitaciones fue removido para enfocar la pantalla
+/// 100% en el flujo de tareas y alertas del personal.
 class HotelService {
   HotelService(this._firestore);
 
@@ -23,12 +24,6 @@ class HotelService {
   // Colecciones
   // ─────────────────────────────────────────────────────────────────────────
 
-  CollectionReference<Map<String, dynamic>> get _rooms =>
-      _firestore.collection('rooms');
-
-  CollectionReference<Map<String, dynamic>> get _reservations =>
-      _firestore.collection('reservations');
-
   CollectionReference<Map<String, dynamic>> get _tasks =>
       _firestore.collection('tasks');
 
@@ -36,64 +31,34 @@ class HotelService {
       _firestore.collection('notifications');
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Habitaciones
+  // Tareas — Tablero Kanban
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Stream de todos los documentos de la colección `rooms`.
-  /// Emite una nueva lista cada vez que algún documento cambia en Firestore.
-  /// Se ordena por `roomNumber` (campo real en Firestore).
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchRooms() =>
-      _rooms.orderBy('roomNumber').snapshots();
-
-  /// Stream filtrado por [floor] (campo `floor` en Firestore).
-  /// Nota: Firestore requiere un índice compuesto para where+orderBy en
-  /// campos distintos. El ordenamiento final se hace en el cliente.
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchRoomsByFloor(int floor) =>
-      _rooms
-          .where('floor', isEqualTo: floor)
-          .orderBy('roomNumber')
+  /// Stream de tareas pendientes (`status == 'pending'`).
+  /// Ordenadas por fecha de creación descendente.
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchPendingTasks() =>
+      _tasks
+          .where('status', isEqualTo: 'pending')
+          .orderBy('createdAt', descending: true)
           .snapshots();
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // Reservaciones
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /// Stream de reservaciones activas (pending o confirmed).
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveReservations() =>
-      _reservations
-          .where('status', whereIn: ['pending', 'confirmed'])
-          .orderBy('checkIn')
+  /// Stream de tareas en progreso (`status == 'in_progress'`).
+  /// Ordenadas por fecha de creación descendente.
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchInProgressTasks() =>
+      _tasks
+          .where('status', isEqualTo: 'in_progress')
+          .orderBy('createdAt', descending: true)
           .snapshots();
 
-  /// Stream de reservaciones con check-in realizado (huéspedes en el hotel).
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchCheckedInReservations() =>
-      _reservations
-          .where('status', isEqualTo: ReservationStatus.checkedIn.name)
-          .snapshots();
-
-  /// Obtiene una reservación por ID una sola vez (lectura puntual).
-  Future<ReservationModel?> getReservationById(String id) async {
-    final doc = await _reservations.doc(id).get();
-    if (!doc.exists || doc.data() == null) return null;
-    return ReservationModel.fromFirestore(doc.id, doc.data()!);
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // Tareas / Actividad reciente
-  // ─────────────────────────────────────────────────────────────────────────
-
-  /// Stream de las últimas [limit] tareas, ordenadas por createdAt descendente.
-  /// El campo es `createdAt` (ISO8601 string) tal como lo guarda Hotel-Project.
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchRecentTasks({
+  /// Stream de las últimas [limit] tareas NO completadas.
+  /// Se excluyen tareas con `status == 'completed'` del tablero Kanban.
+  Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveTasks({
     int limit = 20,
   }) =>
-      _tasks.orderBy('createdAt', descending: true).limit(limit).snapshots();
-
-  /// Stream de tareas activas (pending + inProgress) para el dashboard.
-  Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveTasks() =>
       _tasks
-          .where('status', whereIn: ['pending', 'inProgress'])
-          .orderBy('priority', descending: true)
+          .where('status', whereIn: ['pending', 'in_progress'])
+          .orderBy('createdAt', descending: true)
+          .limit(limit)
           .snapshots();
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -101,10 +66,13 @@ class HotelService {
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Stream de notificaciones activas (campo `active == true`).
+  /// Limitado a 10 resultados para evitar desbordamiento visual.
+  /// Ordenado por fecha de creación descendente.
   Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveNotifications() =>
       _notifications
           .where('active', isEqualTo: true)
           .orderBy('createdAt', descending: true)
+          .limit(10)
           .snapshots();
 }
 
