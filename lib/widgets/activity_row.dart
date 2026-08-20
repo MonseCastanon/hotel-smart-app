@@ -47,7 +47,7 @@ class _ActivityRowState extends State<ActivityRow> {
             ),
             Expanded(flex: 2, child: Text(widget.task.assignedTo)),
             Expanded(flex: 1, child: Text(widget.task.room)),
-            Expanded(flex: 2, child: Text(widget.task.date)),
+            Expanded(flex: 2, child: Text(widget.task.formattedDate)),
             Expanded(flex: 2, child: StatusBadge(status: widget.task.status)),
           ],
         ),

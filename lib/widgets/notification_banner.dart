@@ -85,7 +85,7 @@ class NotificationBanner extends StatelessWidget {
               ),
               const SizedBox(height: 2.0),
               Text(
-                notification.time,
+                notification.timeAgo,
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 13.0,
