@@ -24,17 +24,36 @@ class TaskCard extends StatelessWidget {
     required this.status,
   });
 
+  /// Traduce el tipo de servicio al español si viene en inglés desde Hotel-Project.
+  String get _serviceLabel => switch (serviceType.toLowerCase()) {
+        'cleaning' => 'Limpieza',
+        'maintenance' => 'Mantenimiento',
+        'inspection' => 'Inspección',
+        'delivery' => 'Entrega',
+        'guest_request' => 'Sol. Huésped',
+        _ => serviceType,
+      };
+
   /// Color principal según el tipo de servicio.
   Color get _serviceColor {
     switch (serviceType.toLowerCase()) {
       case 'limpieza':
+      case 'cleaning':
         return const Color(0xFF3B82F6); // Azul
       case 'mantenimiento':
+      case 'maintenance':
         return const Color(0xFFFF661A); // Naranja (marca)
+      case 'inspección':
+      case 'inspection':
+        return const Color(0xFF8B5CF6); // Violeta
+      case 'entrega':
+      case 'delivery':
+        return const Color(0xFF10B981); // Verde esmeralda
+      case 'sol. huésped':
+      case 'guest_request':
+        return const Color(0xFFF59E0B); // Ámbar
       case 'room service':
         return const Color(0xFF10B981); // Verde esmeralda
-      case 'cleaning':
-        return const Color(0xFF3B82F6);
       default:
         return const Color(0xFF6B7280); // Gris
     }
@@ -47,7 +66,17 @@ class TaskCard extends StatelessWidget {
       case 'cleaning':
         return Icons.cleaning_services_rounded;
       case 'mantenimiento':
+      case 'maintenance':
         return Icons.build_rounded;
+      case 'inspección':
+      case 'inspection':
+        return Icons.search_rounded;
+      case 'entrega':
+      case 'delivery':
+        return Icons.local_shipping_rounded;
+      case 'sol. huésped':
+      case 'guest_request':
+        return Icons.support_agent_rounded;
       case 'room service':
         return Icons.room_service_rounded;
       default:
@@ -96,7 +125,7 @@ class TaskCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    serviceType,
+                    _serviceLabel,
                     style: TextStyle(
                       color: _serviceColor,
                       fontWeight: FontWeight.w700,
