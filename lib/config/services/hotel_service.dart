@@ -28,7 +28,7 @@ class HotelService {
       _firestore.collection('tasks');
 
   CollectionReference<Map<String, dynamic>> get _notifications =>
-      _firestore.collection('notifications');
+      _firestore.collection('alerts');
 
   // ─────────────────────────────────────────────────────────────────────────
   // Tareas — Tablero Kanban
@@ -42,21 +42,21 @@ class HotelService {
           .orderBy('createdAt', descending: true)
           .snapshots();
 
-  /// Stream de tareas en progreso (`status == 'in_progress'`).
-  /// Ordenadas por fecha de creación descendente.
+  /// Stream de tareas en progreso (`status == 'inProgress'`).
+  /// Usa camelCase para coincidir con WearTaskStatus.inProgress.name del wear-app.
   Stream<QuerySnapshot<Map<String, dynamic>>> watchInProgressTasks() =>
       _tasks
-          .where('status', isEqualTo: 'in_progress')
+          .where('status', isEqualTo: 'inProgress')
           .orderBy('createdAt', descending: true)
           .snapshots();
 
   /// Stream de las últimas [limit] tareas NO completadas.
-  /// Se excluyen tareas con `status == 'completed'` del tablero Kanban.
+  /// Usa 'inProgress' (camelCase) para coincidir con WearTaskStatus.inProgress.name.
   Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveTasks({
     int limit = 20,
   }) =>
       _tasks
-          .where('status', whereIn: ['pending', 'in_progress'])
+          .where('status', whereIn: ['pending', 'inProgress'])
           .orderBy('createdAt', descending: true)
           .limit(limit)
           .snapshots();
@@ -65,14 +65,16 @@ class HotelService {
   // Notificaciones / Alertas
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Stream de notificaciones activas (campo `active == true`).
+  /// Stream de notificaciones activas (campo `isAcknowledged == false`).
   /// Limitado a 10 resultados para evitar desbordamiento visual.
   /// Ordenado por fecha de creación descendente.
+  ///
+  /// NOTA: El filtro `isAcknowledged` se aplica en cliente para evitar requerir
+  /// un índice compuesto en Firestore (isAcknowledged + createdAt).
   Stream<QuerySnapshot<Map<String, dynamic>>> watchActiveNotifications() =>
       _notifications
-          .where('active', isEqualTo: true)
           .orderBy('createdAt', descending: true)
-          .limit(10)
+          .limit(30) // Carga más y filtra en cliente
           .snapshots();
 }
 

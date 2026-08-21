@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../data/notifications_datasource.dart';
-import '../data/tasks_datasource.dart';
-import '../models/notification_model.dart';
-import '../models/task_model.dart';
-import '../widgets/alerts_panel.dart';
-import '../widgets/kanban_column.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hotel_smart_app/providers/notifications_provider.dart';
+import 'package:hotel_smart_app/providers/tasks_provider.dart';
+import 'package:hotel_smart_app/models/notification_model.dart';
+import 'package:hotel_smart_app/models/task_model.dart';
+import 'package:hotel_smart_app/widgets/alerts_panel.dart';
+import 'package:hotel_smart_app/widgets/kanban_column.dart';
 
 /// Pantalla principal de la Smart TV — Tablero de Control Kanban.
 ///
@@ -16,101 +17,45 @@ import '../widgets/kanban_column.dart';
 ///   │  🔔 Panel de Alertas (colapsable, scrolleable)       │
 ///   ├───────────────────────┬──────────────────────────────┤
 ///   │      Pendientes       │         En Progreso          │
-///   │      (pending)        │         (in_progress)        │
+///   │      (pending)        │         (inProgress)         │
 ///   │                       │                              │
 ///   └───────────────────────┴──────────────────────────────┘
 ///
 /// Se excluyen tareas completadas del tablero.
 /// Las alertas se limitan a 10, ordenadas por fecha descendente.
-class HomeScreen extends StatefulWidget {
+/// Usa Riverpod para suscribirse a Firestore en tiempo real.
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    // ── Streams de Firestore via Riverpod ─────────────────────────────────────
+    final pendingAsync = ref.watch(pendingTasksStreamProvider);
+    final inProgressAsync = ref.watch(inProgressTasksStreamProvider);
+    final alertsAsync = ref.watch(notificationsProvider);
 
-class _HomeScreenState extends State<HomeScreen> {
-  // ── Datos ──────────────────────────────────────────────────────────────────
-  List<TaskModel> _pendingTasks = [];
-  List<TaskModel> _inProgressTasks = [];
-  List<NotificationModel> _alerts = [];
-  bool _isLoadingTasks = true;
-  bool _isLoadingAlerts = true;
+    // ── Extraer datos con manejo de estado ───────────────────────────────────
+    final pendingTasks = pendingAsync.valueOrNull ?? <TaskModel>[];
+    final inProgressTasks = inProgressAsync.valueOrNull ?? <TaskModel>[];
+    final alerts = alertsAsync.valueOrNull ?? <NotificationModel>[];
 
-  // ── Firestore streams ─────────────────────────────────────────────────────
-  final TasksDatasource _tasksDatasource = TasksDatasource();
-  final NotificationsDatasource _notificationsDatasource =
-      NotificationsDatasource();
+    final isLoadingTasks = pendingAsync.isLoading || inProgressAsync.isLoading;
+    final isLoadingAlerts = alertsAsync.isLoading;
 
-  @override
-  void initState() {
-    super.initState();
-    _subscribeToFirestore();
-  }
+    // ── Errores de Firestore en debug ─────────────────────────────────────────
+    assert(() {
+      if (pendingAsync.hasError) {
+        debugPrint('[HomeScreen] Error en tareas pendientes: ${pendingAsync.error}');
+      }
+      if (inProgressAsync.hasError) {
+        debugPrint('[HomeScreen] Error en tareas en progreso: ${inProgressAsync.error}');
+      }
+      if (alertsAsync.hasError) {
+        debugPrint('[HomeScreen] Error en alertas: ${alertsAsync.error}');
+      }
+      return true;
+    }());
 
-  /// Suscribirse a los streams de Firestore.
-  void _subscribeToFirestore() {
-    // ── Tareas Pendientes ────────────────────────────────────────────────────
-    _tasksDatasource.watchPendingTasks().listen(
-      (tasks) {
-        if (mounted) {
-          setState(() {
-            _pendingTasks = tasks;
-            _isLoadingTasks = false;
-          });
-        }
-      },
-      onError: (error) {
-        if (mounted) {
-          setState(() {
-            _pendingTasks = [];
-            _isLoadingTasks = false;
-          });
-        }
-      },
-    );
-
-    // ── Tareas En Progreso ───────────────────────────────────────────────────
-    _tasksDatasource.watchInProgressTasks().listen(
-      (tasks) {
-        if (mounted) {
-          setState(() {
-            _inProgressTasks = tasks;
-          });
-        }
-      },
-      onError: (error) {
-        if (mounted) {
-          setState(() {
-            _inProgressTasks = [];
-          });
-        }
-      },
-    );
-
-    // ── Alertas ──────────────────────────────────────────────────────────────
-    _notificationsDatasource.watchActiveNotifications().listen(
-      (alerts) {
-        if (mounted) {
-          setState(() {
-            _alerts = alerts;
-            _isLoadingAlerts = false;
-          });
-        }
-      },
-      onError: (error) {
-        if (mounted) {
-          setState(() {
-            _alerts = [];
-            _isLoadingAlerts = false;
-          });
-        }
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F1117),
       body: SafeArea(
@@ -120,11 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
             _buildAppBar(),
 
             // ── Panel de Alertas (colapsable) ────────────────────────────
-            if (!_isLoadingAlerts) AlertsPanel(alerts: _alerts),
+            if (!isLoadingAlerts) AlertsPanel(alerts: alerts),
 
             // ── Tablero Kanban (2 columnas) ──────────────────────────────
             Expanded(
-              child: _isLoadingTasks
+              child: isLoadingTasks
                   ? const Center(
                       child: CircularProgressIndicator(
                         color: Color(0xFFFF661A),
@@ -140,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               title: 'Tareas Pendientes',
                               icon: Icons.pending_actions_rounded,
                               color: const Color(0xFFFF661A), // Naranja
-                              tasks: _pendingTasks,
+                              tasks: pendingTasks,
                             ),
                           ),
 
@@ -152,7 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               title: 'En Progreso',
                               icon: Icons.trending_up_rounded,
                               color: const Color(0xFF3B82F6), // Azul
-                              tasks: _inProgressTasks,
+                              tasks: inProgressTasks,
                             ),
                           ),
                         ],

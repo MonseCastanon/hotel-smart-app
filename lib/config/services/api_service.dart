@@ -6,9 +6,16 @@ import 'package:hotel_smart_app/models/room_model.dart';
 class ApiService {
   final Dio _dio;
 
+  /// La URL base se configura vía --dart-define=API_URL=http://192.168.x.x:3000/api
+  /// Fallback: 10.0.2.2 = localhost del emulador Android (solo para desarrollo).
+  static const _baseUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://10.0.2.2:3000/api',
+  );
+
   ApiService()
       : _dio = Dio(BaseOptions(
-          baseUrl: 'http://10.0.2.2:3000/api',
+          baseUrl: _baseUrl,
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 10),
         ));

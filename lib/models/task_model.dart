@@ -20,15 +20,20 @@ class TaskModel {
   });
 
   /// Crea un [TaskModel] a partir de un documento de Firestore.
+  ///
+  /// Compatible con el esquema de Hotel-Project:
+  ///   • roomNumber → int  → se convierte con toString()
+  ///   • assignedBy → campo real en Hotel-Project (assignedTo como alias)
   factory TaskModel.fromFirestore(
     String docId,
     Map<String, dynamic> data,
   ) {
     return TaskModel(
       id: docId,
-      serviceType: data['serviceType'] as String? ?? data['type'] as String? ?? 'Sin tipo',
-      assignedTo: data['assignedTo'] as String? ?? 'Sin asignar',
-      room: data['room'] as String? ?? data['roomNumber'] as String? ?? '—',
+      serviceType: data['serviceType'] as String? ?? data['taskType'] as String? ?? data['type'] as String? ?? 'Sin tipo',
+      assignedTo: data['assignedTo'] as String? ?? data['assignedBy'] as String? ?? 'Sin asignar',
+      // roomNumber puede ser int o String según quién escribió el documento
+      room: data['room'] as String? ?? data['roomNumber']?.toString() ?? '—',
       status: data['status'] as String? ?? 'pending',
       createdAt: _parseDate(data['createdAt'] ?? data['date']),
     );

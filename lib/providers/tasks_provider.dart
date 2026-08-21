@@ -7,11 +7,19 @@ import 'package:hotel_smart_app/models/task_model.dart';
 // Providers de tareas
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Stream de tareas recientes (últimas 20), ordenadas por createdAt descendente.
-/// Se actualiza en tiempo real cuando Hotel-Project o Wear modifican una tarea.
-final recentTasksProvider = StreamProvider<List<TaskModel>>((ref) {
+/// Stream de tareas pendientes (`status == 'pending'`) para la columna Kanban.
+/// Se actualiza en tiempo real cuando Hotel-Project crea nuevas tareas.
+final pendingTasksStreamProvider = StreamProvider<List<TaskModel>>((ref) {
   final service = ref.watch(hotelServiceProvider);
-  return service.watchRecentTasks(limit: 20).map(_snapshotToTasks);
+  return service.watchPendingTasks().map(_snapshotToTasks);
+});
+
+/// Stream de tareas en progreso (`status == 'inProgress'`) para la columna Kanban.
+/// Se actualiza en tiempo real cuando hotel-wear-app acepta y trabaja una tarea.
+/// Nota: usa 'inProgress' (camelCase) para coincidir con WearTaskStatus.inProgress.name.
+final inProgressTasksStreamProvider = StreamProvider<List<TaskModel>>((ref) {
+  final service = ref.watch(hotelServiceProvider);
+  return service.watchInProgressTasks().map(_snapshotToTasks);
 });
 
 /// Stream de tareas activas (pending + inProgress) para el dashboard.
