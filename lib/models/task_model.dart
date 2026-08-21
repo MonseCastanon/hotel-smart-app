@@ -31,7 +31,11 @@ class TaskModel {
     return TaskModel(
       id: docId,
       serviceType: data['serviceType'] as String? ?? data['taskType'] as String? ?? data['type'] as String? ?? 'Sin tipo',
-      assignedTo: data['assignedTo'] as String? ?? data['assignedBy'] as String? ?? 'Sin asignar',
+      // Prioridad: assignedTo → assignedByName (nombre legible) → assignedBy (UID como último recurso)
+      assignedTo: data['assignedTo'] as String?
+          ?? data['assignedByName'] as String?
+          ?? data['assignedBy'] as String?
+          ?? 'Sin asignar',
       // roomNumber puede ser int o String según quién escribió el documento
       room: data['room'] as String? ?? data['roomNumber']?.toString() ?? '—',
       status: data['status'] as String? ?? 'pending',
