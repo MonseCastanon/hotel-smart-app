@@ -31,9 +31,10 @@ class TasksDatasource {
   }
 
   /// Stream de tareas en progreso desde Firestore.
+  /// Usa 'inProgress' (camelCase) para coincidir con WearTaskStatus.inProgress.name.
   Stream<List<TaskModel>> watchInProgressTasks() {
     return _tasks
-        .where('status', isEqualTo: 'in_progress')
+        .where('status', isEqualTo: 'inProgress')
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
@@ -42,9 +43,10 @@ class TasksDatasource {
   }
 
   /// Stream de todas las tareas activas (no completadas).
+  /// Usa 'inProgress' (camelCase) para coincidir con WearTaskStatus.inProgress.name.
   Stream<List<TaskModel>> watchActiveTasks({int limit = 20}) {
     return _tasks
-        .where('status', whereIn: ['pending', 'in_progress'])
+        .where('status', whereIn: ['pending', 'inProgress'])
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .snapshots()

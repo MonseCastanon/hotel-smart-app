@@ -27,11 +27,11 @@ class NotificationModel {
   ) {
     return NotificationModel(
       id: docId,
-      title: data['title'] as String? ?? 'Alerta',
-      description: data['description'] as String? ?? '',
-      relatedRoom: data['relatedRoom'] as String? ?? data['room'] as String? ?? '',
+      title: data['title'] as String? ?? 'Alerta Manual',
+      description: data['description'] as String? ?? data['message'] as String? ?? '',
+      relatedRoom: data['relatedRoom'] as String? ?? data['room'] as String? ?? data['roomId']?.toString() ?? '',
       createdAt: _parseDate(data['createdAt']),
-      active: data['active'] as bool? ?? true,
+      active: !(data['isAcknowledged'] as bool? ?? false),
     );
   }
 

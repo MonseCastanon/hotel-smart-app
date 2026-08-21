@@ -19,7 +19,7 @@ final roomsStreamProvider = StreamProvider<List<RoomModel>>((ref) async* {
     } catch (e) {
       // Si hay error en la primera carga, lo lanzamos.
       // Si es un error subsecuente, la UI mantendrá los datos anteriores.
-      throw e;
+      rethrow;
     }
     await Future.delayed(const Duration(seconds: 3));
   }
@@ -37,7 +37,7 @@ final roomsByFloorProvider =
       filteredRooms.sort((a, b) => a.numero.compareTo(b.numero));
       yield filteredRooms;
     } catch (e) {
-      throw e;
+      rethrow;
     }
     await Future.delayed(const Duration(seconds: 3));
   }
@@ -93,7 +93,7 @@ final roomStatsProvider = StreamProvider<RoomStats>((ref) async* {
         total: rooms.length,
       );
     } catch (e) {
-      throw e;
+      rethrow;
     }
     await Future.delayed(const Duration(seconds: 3));
   }
@@ -114,7 +114,7 @@ final availableFloorsProvider = StreamProvider<List<int>>((ref) async* {
       floors.sort();
       yield floors;
     } catch (e) {
-      throw e;
+      rethrow;
     }
     await Future.delayed(const Duration(seconds: 3));
   }

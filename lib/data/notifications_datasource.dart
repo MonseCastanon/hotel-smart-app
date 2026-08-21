@@ -13,23 +13,25 @@ class NotificationsDatasource {
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
   CollectionReference<Map<String, dynamic>> get _notifications =>
-      _firestore.collection('notifications');
+      _firestore.collection('alerts');
 
   // ─────────────────────────────────────────────────────────────────────────
   // Stream en tiempo real (Firestore)
   // ─────────────────────────────────────────────────────────────────────────
 
   /// Stream de alertas activas desde Firestore.
-  /// Limitado a 10 documentos, ordenado por fecha descendente.
+  /// Limitado a 30 documentos más recientes; filtra `isAcknowledged == false`
+  /// en el cliente para evitar requerir un índice compuesto en Firestore.
   Stream<List<NotificationModel>> watchActiveNotifications() {
     return _notifications
-        .where('active', isEqualTo: true)
         .orderBy('createdAt', descending: true)
-        .limit(10)
+        .limit(30)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) =>
                 NotificationModel.fromFirestore(doc.id, doc.data()))
+            .where((n) => n.active) // isAcknowledged == false → active == true
+            .take(10)
             .toList());
   }
 
